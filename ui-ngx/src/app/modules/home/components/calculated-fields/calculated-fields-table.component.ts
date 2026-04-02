@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2025 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -37,11 +37,12 @@ import { EntityDebugSettingsService } from '@home/components/entity/debug/entity
 import { DatePipe } from '@angular/common';
 
 @Component({
-  selector: 'tb-calculated-fields-table',
-  templateUrl: './calculated-fields-table.component.html',
-  styleUrls: ['./calculated-fields-table.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [EntityDebugSettingsService]
+    selector: 'tb-calculated-fields-table',
+    templateUrl: './calculated-fields-table.component.html',
+    styleUrls: ['./calculated-fields-table.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    providers: [EntityDebugSettingsService],
+    standalone: false
 })
 export class CalculatedFieldsTableComponent {
 

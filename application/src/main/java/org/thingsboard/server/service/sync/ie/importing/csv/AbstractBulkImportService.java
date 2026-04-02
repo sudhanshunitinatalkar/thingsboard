@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2025 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -186,7 +186,7 @@ public abstract class AbstractBulkImportService<E extends HasId<? extends Entity
                             .forEach(dataEntry -> kvs.add(dataEntry.getKey().getKey(), dataEntry.getValue().toJsonPrimitive()));
                     return Map.entry(kvType, kvs);
                 })
-                .filter(kvsEntry -> kvsEntry.getValue().entrySet().size() > 0)
+                .filter(kvsEntry -> !kvsEntry.getValue().entrySet().isEmpty())
                 .forEach(kvsEntry -> {
                     BulkImportColumnType kvType = kvsEntry.getKey();
                     if (kvType == BulkImportColumnType.SHARED_ATTRIBUTE || kvType == BulkImportColumnType.SERVER_ATTRIBUTE) {

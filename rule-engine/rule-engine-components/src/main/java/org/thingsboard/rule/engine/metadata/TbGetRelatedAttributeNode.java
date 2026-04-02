@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2025 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ public class TbGetRelatedAttributeNode extends TbAbstractGetEntityDataNode<Entit
     @Override
     public ListenableFuture<EntityId> findEntityAsync(TbContext ctx, EntityId originator) {
         var relatedAttrConfig = (TbGetRelatedDataNodeConfiguration) config;
-        return Futures.transformAsync(
+        return Futures.transform(
                 EntitiesRelatedEntityIdAsyncLoader.findEntityAsync(ctx, originator, relatedAttrConfig.getRelationsQuery()),
                 checkIfEntityIsPresentOrThrow(RELATED_ENTITY_NOT_FOUND_MESSAGE),
                 ctx.getDbCallbackExecutor());

@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2025 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -23,18 +23,21 @@ import { NULL_UUID } from '@shared/models/id/has-uuid';
 import { baseDetailsPageByEntityType, EntityType } from '@shared/models/entity-type.models';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
-import { serverErrorCodesTranslations } from '@shared/models/constants';
+import { httpStatusMessageMap, serverErrorCodesTranslations } from '@shared/models/constants';
 import { SubscriptionEntityInfo } from '@core/api/widget-api.models';
 import {
   CompiledTbFunction,
-  compileTbFunction, GenericFunction,
+  compileTbFunction,
+  GenericFunction,
   isNotEmptyTbFunction,
   TbFunction
 } from '@shared/models/js-function.models';
 import { DomSanitizer } from '@angular/platform-browser';
 import { SecurityContext } from '@angular/core';
+import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 
 const varsRegex = /\${([^}]*)}/g;
+const emailRegex = /^[A-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 
 export function onParentScrollOrWindowResize(el: Node): Observable<Event> {
   const scrollSubject = new Subject<Event>();
@@ -401,7 +404,7 @@ export function mergeDeep<T>(target: T, ...sources: T[]): T {
 
 function ignoreArrayMergeFunc(target: any, sources: any) {
   if (_.isArray(target)) {
-    return sources;
+    return deepClone(sources);
   }
 }
 
@@ -822,11 +825,13 @@ export function parseHttpErrorMessage(errorResponse: HttpErrorResponse,
   } else {
     error = errorResponse.error;
   }
-  if (error && !error.message) {
-    errorMessage = prepareMessageFromData(error);
-  } else if (error && error.message) {
+  if (error && error.message) {
     errorMessage = error.message;
     timeout = error.timeout ? error.timeout : 0;
+  } else if (isProxyError(errorResponse)) {
+    errorMessage = httpStatusMessageMap.get(errorResponse.status);
+  } else if (error) {
+    errorMessage = prepareMessageFromData(error);
   } else {
     errorMessage = `Unhandled error code ${error ? error.status : '\'Unknown\''}`;
   }
@@ -861,6 +866,14 @@ function prepareMessageFromData(data): string {
   } else {
     return data;
   }
+}
+
+function isProxyError(errorResponse: HttpErrorResponse): boolean {
+  if (!httpStatusMessageMap.has(errorResponse.status)) {
+    return false;
+  }
+  const error = errorResponse.error;
+  return !error || typeof error === 'string' || (typeof error === 'object' && !error.message);
 }
 
 export const genNextLabel = (name: string, datasources: Datasource[]): string => {
@@ -987,4 +1000,21 @@ export const trimDefaultValues = (input: Record<string, any>, defaults: Record<s
   }
 
   return result;
+}
+
+export const validateEmail = (control: AbstractControl): ValidationErrors | null => {
+  if (isUndefinedOrNull(control.value) || (typeof control.value === 'string' && control.value.length === 0)) {
+    return null;
+  }
+  return emailRegex.test(control.value) ? null : {email: true};
+};
+
+export const objectRequired = (): ValidatorFn => {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const value = control.value;
+    if (value && !isObject(value)) {
+      return { objectRequired: true };
+    }
+    return null;
+  };
 }

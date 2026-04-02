@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2025 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import org.springframework.web.reactive.function.client.WebClient.RequestBodySpe
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.thingsboard.common.util.JacksonUtil;
+import org.thingsboard.common.util.SsrfProtectionValidator;
 import org.thingsboard.rule.engine.api.TbContext;
 import org.thingsboard.rule.engine.api.TbNodeException;
 import org.thingsboard.rule.engine.api.util.TbNodeUtils;
@@ -102,6 +103,7 @@ public class TbHttpClient {
                     .build();
 
             HttpClient httpClient = HttpClient.create(connectionProvider)
+                    .followRedirect(false)
                     .runOn(getSharedOrCreateEventLoopGroup(eventLoopGroupShared))
                     .doOnConnected(c ->
                             c.addHandlerLast(new ReadTimeoutHandler(config.getReadTimeoutMs(), TimeUnit.MILLISECONDS)));
@@ -135,6 +137,10 @@ public class TbHttpClient {
             } else {
                 SslContext sslContext = config.getCredentials().initSslContext();
                 httpClient = httpClient.secure(t -> t.sslContext(sslContext));
+            }
+
+            if (SsrfProtectionValidator.isEnabled()) {
+                httpClient = httpClient.resolver(SsrfSafeAddressResolverGroup.INSTANCE);
             }
 
             validateMaxInMemoryBufferSize(config);
@@ -280,6 +286,8 @@ public class TbHttpClient {
         if (authorityNotValid || hostNotValid) {
             throw new RuntimeException("Url string is invalid!");
         }
+
+        SsrfProtectionValidator.validateUri(uri);
 
         return uri;
     }

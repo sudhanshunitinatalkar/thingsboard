@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2025 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package org.thingsboard.server.dao.ota;
 
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
+import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.ListenableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +48,7 @@ import org.thingsboard.server.dao.service.PaginatedRemover;
 import java.nio.ByteBuffer;
 import java.util.Optional;
 
+import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static org.thingsboard.server.dao.service.Validator.validateId;
 import static org.thingsboard.server.dao.service.Validator.validatePageLink;
 
@@ -194,7 +196,9 @@ public class BaseOtaPackageService extends AbstractCachedEntityService<OtaPackag
         log.trace("Executing deleteOtaPackage [{}]", otaPackageId);
         validateId(otaPackageId, id -> INCORRECT_OTA_PACKAGE_ID + id);
         try {
+            Long oid = getDataOidById(tenantId, otaPackageId);
             otaPackageDao.removeById(tenantId, otaPackageId.getId());
+            unlinkDataIfPresent(tenantId, otaPackageId, oid);
             publishEvictEvent(new OtaPackageCacheEvictEvent(otaPackageId));
             eventPublisher.publishEvent(DeleteEntityEvent.builder().tenantId(tenantId).entityId(otaPackageId).build());
         } catch (Exception t) {
@@ -213,6 +217,30 @@ public class BaseOtaPackageService extends AbstractCachedEntityService<OtaPackag
         }
     }
 
+    private Long getDataOidById(TenantId tenantId, OtaPackageId otaPackageId) {
+        try {
+            log.trace("Executing getDataOidById tenantId [{}], otaPackageId [{}]", tenantId, otaPackageId);
+            return otaPackageDao.getDataOidById(otaPackageId.getId());
+        } catch (Exception e) {
+            log.warn("[{}][{}] Failed to retrieve OID before deletion", tenantId, otaPackageId, e);
+        }
+        return null;
+    }
+
+    private void unlinkDataIfPresent(TenantId tenantId, OtaPackageId otaPackageId, Long oid) {
+        if (oid == null) {
+            return;
+        }
+        try {
+            Integer result = otaPackageDao.unlinkLargeObject(oid);
+            if (result != 1) {
+                log.warn("[{}][{}] Failed to delete large object (OID: {}). Result code: {}", tenantId, otaPackageId, oid, result);
+            }
+        } catch (Exception e) {
+            log.warn("[{}][{}] Failed to delete large object (OID: {})", tenantId, otaPackageId, oid, e);
+        }
+    }
+
     @Override
     public void deleteEntity(TenantId tenantId, EntityId id, boolean force) {
         deleteOtaPackage(tenantId, (OtaPackageId) id);
@@ -224,34 +252,38 @@ public class BaseOtaPackageService extends AbstractCachedEntityService<OtaPackag
     }
 
     @Override
+    public void deleteByTenantId(TenantId tenantId) {
+        deleteOtaPackagesByTenantId(tenantId);
+    }
+
+    @Override
     public void deleteOtaPackagesByTenantId(TenantId tenantId) {
         log.trace("Executing deleteOtaPackagesByTenantId, tenantId [{}]", tenantId);
         validateId(tenantId, id -> INCORRECT_TENANT_ID + id);
         tenantOtaPackageRemover.removeEntities(tenantId, tenantId);
     }
 
-    @Override
-    public void deleteByTenantId(TenantId tenantId) {
-        deleteOtaPackagesByTenantId(tenantId);
-    }
+    private final PaginatedRemover<TenantId, OtaPackageInfo> tenantOtaPackageRemover = new PaginatedRemover<>() {
+        @Override
+        protected PageData<OtaPackageInfo> findEntities(TenantId tenantId, TenantId id, PageLink pageLink) {
+            return otaPackageInfoDao.findOtaPackageInfoByTenantId(id, pageLink);
+        }
 
-    private PaginatedRemover<TenantId, OtaPackageInfo> tenantOtaPackageRemover =
-            new PaginatedRemover<>() {
-
-                @Override
-                protected PageData<OtaPackageInfo> findEntities(TenantId tenantId, TenantId id, PageLink pageLink) {
-                    return otaPackageInfoDao.findOtaPackageInfoByTenantId(id, pageLink);
-                }
-
-                @Override
-                protected void removeEntity(TenantId tenantId, OtaPackageInfo entity) {
-                    deleteOtaPackage(tenantId, entity.getId());
-                }
-            };
+        @Override
+        protected void removeEntity(TenantId tenantId, OtaPackageInfo entity) {
+            deleteOtaPackage(tenantId, entity.getId());
+        }
+    };
 
     @Override
     public Optional<HasId<?>> findEntity(TenantId tenantId, EntityId entityId) {
         return Optional.ofNullable(findOtaPackageInfoById(tenantId, new OtaPackageId(entityId.getId())));
+    }
+
+    @Override
+    public FluentFuture<Optional<HasId<?>>> findEntityAsync(TenantId tenantId, EntityId entityId) {
+        return FluentFuture.from(findOtaPackageInfoByIdAsync(tenantId, new OtaPackageId(entityId.getId())))
+                .transform(Optional::ofNullable, directExecutor());
     }
 
     @Override

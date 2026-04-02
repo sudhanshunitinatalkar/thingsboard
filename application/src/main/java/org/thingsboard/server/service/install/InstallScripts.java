@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2025 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,9 +65,6 @@ import java.util.stream.Stream;
 
 import static org.thingsboard.server.utils.LwM2mObjectModelUtils.toLwm2mResource;
 
-/**
- * Created by ashvayka on 18.04.18.
- */
 @Component
 @Slf4j
 public class InstallScripts {
@@ -132,6 +129,10 @@ public class InstallScripts {
 
     Path getEdgeRuleChainsDir() {
         return Paths.get(getDataDir(), JSON_DIR, EDGE_DIR, RULE_CHAINS_DIR);
+    }
+
+    public Path getWidgetTypesDir() {
+        return Paths.get(getDataDir(), JSON_DIR, SYSTEM_DIR, WIDGET_TYPES_DIR);
     }
 
     public String getDataDir() {
@@ -237,7 +238,7 @@ public class InstallScripts {
                     }
             );
         }
-        Path widgetTypesDir = Paths.get(getDataDir(), JSON_DIR, SYSTEM_DIR, WIDGET_TYPES_DIR);
+        Path widgetTypesDir = getWidgetTypesDir();
         if (Files.exists(widgetTypesDir)) {
             try (Stream<Path> dirStream = listDir(widgetTypesDir).filter(path -> path.toString().endsWith(JSON_EXT))) {
                 dirStream.forEach(

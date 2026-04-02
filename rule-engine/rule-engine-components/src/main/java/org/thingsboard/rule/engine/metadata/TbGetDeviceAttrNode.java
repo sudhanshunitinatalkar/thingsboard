@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2025 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ public class TbGetDeviceAttrNode extends TbAbstractGetAttributesNode<TbGetDevice
 
     @Override
     protected ListenableFuture<DeviceId> findEntityIdAsync(TbContext ctx, TbMsg msg) {
-        return Futures.transformAsync(
+        return Futures.transform(
                 EntitiesRelatedDeviceIdAsyncLoader.findDeviceAsync(ctx, msg.getOriginator(), config.getDeviceRelationsQuery()),
                 checkIfEntityIsPresentOrThrow(RELATED_DEVICE_NOT_FOUND_MESSAGE),
                 ctx.getDbCallbackExecutor());

@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2025 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -52,6 +52,12 @@ export const serverErrorCodesTranslations = new Map<number, string>([
   [Constants.serverErrorCode.itemNotFound, 'server-error.item-not-found'],
   [Constants.serverErrorCode.tooManyRequests, 'server-error.too-many-requests'],
   [Constants.serverErrorCode.tooManyUpdates, 'server-error.too-many-updates'],
+]);
+
+export const httpStatusMessageMap = new Map<number, string>([
+  [502, 'Server is temporarily unavailable (Bad Gateway)'],
+  [503, 'Server is temporarily unavailable'],
+  [504, 'Server did not respond in time (Gateway Timeout)'],
 ]);
 
 export const MediaBreakpoints = {
